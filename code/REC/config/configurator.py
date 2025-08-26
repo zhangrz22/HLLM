@@ -5,6 +5,7 @@ import re
 import os
 import sys
 import yaml
+import json
 import torch
 from logging import getLogger
 from enum import Enum
@@ -178,3 +179,41 @@ class Config(object):
 
     def __repr__(self):
         return self.__str__()
+
+    def parse_extra_args(self, extra_args=[]):
+        def convert_str(s):
+            try:
+                if s.lower() == 'none':
+                    return None
+                if s.lower() == 'true':
+                    return True
+                if s.lower() == 'false':
+                    return False
+                float_val = float(s)
+                if float_val.is_integer():
+                    return int(float_val)
+                return float_val
+            except ValueError:
+                print(f"Unable to convert the string '{s}' to None / Bool / Float / Int, retaining the original string.")
+                return s
+        if len(extra_args):
+            for i in range(0, len(extra_args), 2):
+                key = extra_args[i][2:]
+                value = extra_args[i + 1]
+                try:
+                    if '[' in value or '{' in value:
+                        value = json.loads(value)
+                        if isinstance(value, dict):
+                            for k, v in value.items():
+                                value[k] = convert_str(v)
+                        else:
+                            value = [convert_str(x) for x in value]
+                    else:
+                        value = convert_str(value)
+                    if '.' in key:
+                        k1, k2 = key.split('.')
+                        self.final_config_dict[k1][k2] = value
+                    else:
+                        self.final_config_dict[key] = value
+                except:
+                    raise ValueError(f"{key} {value} invalid")

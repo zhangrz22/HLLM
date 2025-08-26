@@ -206,7 +206,8 @@ class Trainer(object):
                     msg = f"lr: {self.lr_scheduler.get_lr()[0]:.7f} " + msg
                 if self.config['loss'] and self.config['loss'] == 'nce':
                     for k, v in model_out.items():
-                        msg += f" {k}: {v:.3f}"
+                        if k.endswith('loss'):
+                            msg += f" {k}: {v:.3f}"
                 if grad_norm:
                     msg = msg + f" grad_norm: {grad_norm.sum():.4f}"
                 pbar.set_postfix_str(msg, refresh=False)

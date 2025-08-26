@@ -128,7 +128,7 @@ def customize_rmpad_collate(batch):
     elif isinstance(elem, collections.abc.Mapping):
         output = {}
         for key in elem:
-            if any(['_input_ids' in key, '_cu_input_lens' in key, '_position_ids' in key]):
+            if any(key.endswith(x) for x in ["input_ids", "input_lens", "position_ids"]):
                 output[key] = torch.concat([d[key] for d in batch], dim=0)
             else:
                 output[key] = customize_collate([d[key] for d in batch])

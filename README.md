@@ -1,15 +1,26 @@
 # [HLLM: Enhancing Sequential Recommendations via Hierarchical Large Language Models for Item and User Modeling](https://arxiv.org/abs/2409.12740)
 
-<div align="center">
+# [HLLM-Creator: Hierarchical LLM-based Personalized Creative Generation](https://arxiv.org/abs/2508.18118)
 
-[![arXiv](https://img.shields.io/badge/arXiv%20paper-2409.12740-da282a.svg)](https://arxiv.org/abs/2409.12740)
+<div align="left">
+
+[![HLLM](https://img.shields.io/badge/HLLM%20paper-2409.12740-da282a.svg)](https://arxiv.org/abs/2409.12740)
 [![huggingface weights](https://img.shields.io/badge/%F0%9F%A4%97%20Weights-ByteDance/HLLM-yellow)](https://huggingface.co/ByteDance/HLLM)
 [![Recommendation](https://img.shields.io/badge/Task-Recommendation-blue)]()
 
 </div>
 
+<div align="left">
+
+[![HLLM_Creator](https://img.shields.io/badge/HLLM--Creator%20-2508.18118-da282a.svg)](https://arxiv.org/abs/2508.18118)
+[![huggingface weights](https://img.shields.io/badge/%F0%9F%A4%97%20Weights-ByteDance/HLLM-yellow)](https://huggingface.co/ByteDance/HLLM)
+[![Personalized_Generation](https://img.shields.io/badge/Task-Personalized_Generation-blue)]()
+
+</div>
+
 ## 🔥 Update
-- [2024.09.20] Codes and Weights are released !
+- [2025.08.26] HLLM-Creator is released ! Find more details in [Paper](https://arxiv.org/abs/2508.18118) and [README](HLLM_CREATOR_README.md) !
+- [2024.09.20] HLLM Codes and Model Weights are released !
 
 
 ## Installation
@@ -17,9 +28,9 @@
 1. Install packages via `pip3 install -r requirements.txt`. 
 Some basic packages are shown below :
 ```
-pytorch==2.1.0
+pytorch==2.3.1
 deepspeed==0.14.2
-transformers==4.41.1
+transformers==4.51.0
 lightning==2.4.0
 flash-attn==2.5.9post1
 fbgemm-gpu==0.5.0 [optional for HSTU]
@@ -99,7 +110,7 @@ To reproduce our experiments on Pixel8M and Books you can run scripts in `reprod
 | HLLM-7B       | Books   | 28672     | **9.39**   | **17.65** | **27.59** | **5.69**  | **7.50**  | **8.99**  |
 
 ## Inference
-We provide fine-tuned HLLM models for evaluation, you can download from the following links or hugginface. Remember put the weights to `checkpoint_dir`.
+We provide fine-tuned HLLM models for evaluation, you can download from the following links or huggingface. Remember put the weights to `checkpoint_dir`.
 
 | Model | Dataset | Weights |
 |:---|:---|:---|
@@ -141,6 +152,15 @@ title={HLLM: Enhancing Sequential Recommendations via Hierarchical Large Languag
 author={Junyi Chen and Lu Chi and Bingyue Peng and Zehuan Yuan},
 journal={arXiv preprint arXiv:2409.12740},
 year={2024}
+}
+```
+
+```
+@article{HLLM-Creator,
+title={HLLM-Creator: Hierarchical LLM-based Personalized Creative Generation},
+author={Junyi Chen and Lu Chi and Siliang Xu and Shiwei Ran and Bingyue Peng and Zehuan Yuan},
+journal={arXiv preprint arXiv:2508.18118},
+year={2025}
 }
 ```
 
