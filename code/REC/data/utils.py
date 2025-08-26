@@ -38,7 +38,8 @@ def bulid_dataloader(config, dataload):
         'SASRec': ('SEQTrainDataset', 'SeqEvalDataset', 'seq_eval_collate'),
         'HSTU': ('SEQTrainDataset', 'SeqEvalDataset', 'seq_eval_collate'),
         'LLMIDRec': ('SEQTrainDataset', 'SeqEvalDataset', 'seq_eval_collate'),
-        'HLLM': (('TextSEQTrainDataset', 'customize_rmpad_collate'), 'SeqEvalDataset', 'seq_eval_collate')
+        'HLLM': (('TextSEQTrainDataset', 'customize_rmpad_collate'), 'SeqEvalDataset', 'seq_eval_collate'),
+        'HLLM_Creator': (('TextSEQCreatorTrainDataset', 'customize_rmpad_collate'), None, None)
     }
 
     model_name = config['model']
@@ -54,26 +55,13 @@ def bulid_dataloader(config, dataload):
         train_set_class = getattr(dataset_module, train_set_name)
         train_collate_fn = None
 
-    test_set_class = getattr(dataset_module, test_set_name)
-    eval_collate_fn = getattr(dataset_module, collate_fn_name)
-
     train_data = train_set_class(config, dataload)
-    valid_data = test_set_class(config, dataload, phase='valid')
-    test_data = test_set_class(config, dataload, phase='test')
-
+    train_sampler = torch.utils.data.distributed.DistributedSampler(train_data)
     logger = getLogger()
     logger.info(
         set_color('[Training]: ', 'pink') + set_color('train_batch_size', 'cyan') + ' = ' +
         set_color(f'[{config["train_batch_size"]}]', 'yellow')
     )
-    logger.info(
-        set_color('[Evaluation]: ', 'pink') + set_color('eval_batch_size', 'cyan') + ' = ' +
-        set_color(f'[{config["eval_batch_size"]}]', 'yellow')
-    )
-
-    train_sampler = torch.utils.data.distributed.DistributedSampler(train_data)
-    valid_sampler = NonConsecutiveSequentialDistributedSampler(valid_data)
-    test_sampler = NonConsecutiveSequentialDistributedSampler(test_data)
 
     num_workers = 11
     rank = torch.distributed.get_rank()
@@ -90,11 +78,29 @@ def bulid_dataloader(config, dataload):
     else:
         train_loader = DataLoader(train_data, batch_size=config['train_batch_size'], num_workers=num_workers,
                                   pin_memory=True, sampler=train_sampler, worker_init_fn=init_fn)
-    valid_loader = DataLoader(valid_data, batch_size=config['eval_batch_size'], num_workers=num_workers,
+
+    if test_set_name is not None:
+        test_set_class = getattr(dataset_module, test_set_name)
+        eval_collate_fn = getattr(dataset_module, collate_fn_name)
+
+        valid_data = test_set_class(config, dataload, phase='valid')
+        test_data = test_set_class(config, dataload, phase='test')
+
+        logger.info(
+            set_color('[Evaluation]: ', 'pink') + set_color('eval_batch_size', 'cyan') + ' = ' +
+            set_color(f'[{config["eval_batch_size"]}]', 'yellow')
+        )
+
+        valid_sampler = NonConsecutiveSequentialDistributedSampler(valid_data)
+        test_sampler = NonConsecutiveSequentialDistributedSampler(test_data)
+
+        valid_loader = DataLoader(valid_data, batch_size=config['eval_batch_size'], num_workers=num_workers,
                               pin_memory=True, sampler=valid_sampler, collate_fn=eval_collate_fn)
 
-    test_loader = DataLoader(test_data, batch_size=config['eval_batch_size'], num_workers=num_workers,
-                             pin_memory=True, sampler=test_sampler, collate_fn=eval_collate_fn)
+        test_loader = DataLoader(test_data, batch_size=config['eval_batch_size'], num_workers=num_workers,
+                                pin_memory=True, sampler=test_sampler, collate_fn=eval_collate_fn)
+    else:
+        valid_loader = test_loader = None
 
     return train_loader, valid_loader, test_loader
 

@@ -1,0 +1,21 @@
+model: HLLM_Creator
+item_pretrain_dir: item_pretrain_dir # Item and User LLM are initialized by pretrain_dir
+item_llm_init: True
+user_pretrain_dir: user_pretrain_dir
+user_llm_init: True
+creative_pretrain_dir: creative_pretrain_dir
+creative_llm_init: True
+use_ft_flash_attn: True
+train_path: train_path
+
+item_prompt: ''
+user_prompt: 'The preceding is 50 recent book titles reviewed by a user (represented here by the feature vectors), in the format: Book 1 Book 2 ... Book 50, arranged in chronological order from farthest to most recent. Please predict the book that the user may review next (also represented by feature vectors):'
+user_profile_prompt: "The preceding is a feature representation of a user's historical behaviors. Please, based on the book titles that the user has reviewed on in the past, deeply depict the user's interests, explore their needs, refine the user profile, with the requirement to cover the user's long-term, and short-term preferences, and output in JSON format. Output:"
+emb_token_n: 1
+
+aux_loss: 'align_cls_recon'
+
+cls_block_type: 'mixer'
+cls_block_num: 2
+cls_dim: 2048
+cls_neg_num: 8

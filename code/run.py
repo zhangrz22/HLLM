@@ -24,24 +24,6 @@ import argparse
 import torch.distributed as dist
 import torch
 
-
-def convert_str(s):
-    try:
-        if s.lower() == 'none':
-            return None
-        if s.lower() == 'true':
-            return True
-        if s.lower() == 'false':
-            return False
-        float_val = float(s)
-        if float_val.is_integer():
-            return int(float_val)
-        return float_val
-    except ValueError:
-        print(f"Unable to convert the string '{s}' to None / Bool / Float / Int, retaining the original string.")
-        return s
-
-
 def run_loop(local_rank, config_file=None, saved=True, extra_args=[]):
 
     # configurations initialization
@@ -49,27 +31,7 @@ def run_loop(local_rank, config_file=None, saved=True, extra_args=[]):
 
     device = torch.device("cuda", local_rank)
     config['device'] = device
-    if len(extra_args):
-        for i in range(0, len(extra_args), 2):
-            key = extra_args[i][2:]
-            value = extra_args[i + 1]
-            try:
-                if '[' in value or '{' in value:
-                    value = json.loads(value)
-                    if isinstance(value, dict):
-                        for k, v in value.items():
-                            value[k] = convert_str(v)
-                    else:
-                        value = [convert_str(x) for x in value]
-                else:
-                    value = convert_str(value)
-                if '.' in key:
-                    k1, k2 = key.split('.')
-                    config[k1][k2] = value
-                else:
-                    config[key] = value
-            except:
-                raise ValueError(f"{key} {value} invalid")
+    config.parse_extra_args(extra_args)
 
     init_seed(config['seed'], config['reproducibility'])
 

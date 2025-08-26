@@ -32,7 +32,10 @@ class Data:
         self.data_split = config['data_split']
         self.item_data = config['item_data']
         self.logger = getLogger()
-        self._from_scratch()
+
+        self.train_path = config['train_path'] # for hllm_creator only
+        if not self.train_path:
+            self._from_scratch()
 
     def _from_scratch(self):
         self.logger.info(set_color(f'Loading {self.__class__} from scratch with {self.data_split = }.', 'green'))
@@ -96,6 +99,8 @@ class Data:
         self.feat_name_list = ['inter_feat']  # self.inter_feat
 
     def build(self):
+        if self.train_path:
+            return
         self.logger.info(f"build {self.dataset_name} dataload")
         self.sort(by='timestamp')
         user_list = self.inter_feat['user_id'].values
@@ -288,22 +293,25 @@ class Data:
         return self.__str__()
 
     def __str__(self):
-        info = [set_color(self.dataset_name, 'pink')]
-        if self.uid_field:
-            info.extend([
-                set_color('The number of users', 'blue') + f': {self.user_num}',
-                set_color('Average actions of users', 'blue') + f': {self.avg_actions_of_users}'
-            ])
-        if self.iid_field:
-            info.extend([
-                set_color('The number of items', 'blue') + f': {self.item_num}',
-                set_color('Average actions of items', 'blue') + f': {self.avg_actions_of_items}'
-            ])
-        info.append(set_color('The number of inters', 'blue') + f': {self.inter_num}')
-        if self.uid_field and self.iid_field:
-            info.append(set_color('The sparsity of the dataset', 'blue') + f': {self.sparsity * 100}%')
+        if not self.train_path:
+            info = [set_color(self.dataset_name, 'pink')]
+            if self.uid_field:
+                info.extend([
+                    set_color('The number of users', 'blue') + f': {self.user_num}',
+                    set_color('Average actions of users', 'blue') + f': {self.avg_actions_of_users}'
+                ])
+            if self.iid_field:
+                info.extend([
+                    set_color('The number of items', 'blue') + f': {self.item_num}',
+                    set_color('Average actions of items', 'blue') + f': {self.avg_actions_of_items}'
+                ])
+            info.append(set_color('The number of inters', 'blue') + f': {self.inter_num}')
+            if self.uid_field and self.iid_field:
+                info.append(set_color('The sparsity of the dataset', 'blue') + f': {self.sparsity * 100}%')
 
-        return '\n'.join(info)
+            return '\n'.join(info)
+        else:
+            return f"{self.train_path}"
 
     def copy(self, new_inter_feat):
         """Given a new interaction feature, return a new :class:`Dataset` object,
