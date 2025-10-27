@@ -36,6 +36,12 @@ logger = logging.getLogger(__name__)
 def parse_args():
     parser = argparse.ArgumentParser(description='Train PixelRec with DeepSpeed')
 
+    # Custom type for optional int (allows None)
+    def optional_int(value):
+        if value.lower() == 'none':
+            return None
+        return int(value)
+
     # Data arguments
     parser.add_argument('--interaction_data', type=str, required=True,
                         help='Path to interaction CSV file')
@@ -49,7 +55,7 @@ def parse_args():
                         help='Path to pretrained user LLM')
     parser.add_argument('--item_emb_token_n', type=int, default=1,
                         help='Number of embedding tokens per item')
-    parser.add_argument('--num_negatives', type=int, default=None,
+    parser.add_argument('--num_negatives', type=optional_int, default=None,
                         help='Number of negative samples (None for sequence-level)')
 
     # Training arguments
