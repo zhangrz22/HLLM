@@ -118,7 +118,7 @@ class HLLM(BaseModel):
                 return BaichuanForCausalLM(config=hf_config).cuda()
         else:
             return AutoModelForCausalLM.from_pretrained(
-                self.local_dir, config=hf_config
+                pretrain_dir, config=hf_config
             )
 
     def nce_loss(self, cur_embs, target_pos, target_neg, user_attention_mask):

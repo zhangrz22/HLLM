@@ -202,11 +202,24 @@ class Config(object):
                 value = extra_args[i + 1]
                 try:
                     if '[' in value or '{' in value:
-                        value = json.loads(value)
+                        try:
+                            value = json.loads(value)
+                        except json.JSONDecodeError:
+                            # Fallback: manually parse list/dict format
+                            if value.startswith('[') and value.endswith(']'):
+                                # Handle list format like [title,description]
+                                inner = value[1:-1].strip()
+                                if inner:
+                                    value = [convert_str(x.strip()) for x in inner.split(',')]
+                                else:
+                                    value = []
+                            else:
+                                raise
+
                         if isinstance(value, dict):
                             for k, v in value.items():
                                 value[k] = convert_str(v)
-                        else:
+                        elif isinstance(value, list):
                             value = [convert_str(x) for x in value]
                     else:
                         value = convert_str(value)
