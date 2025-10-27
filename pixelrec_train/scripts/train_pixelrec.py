@@ -42,6 +42,17 @@ def parse_args():
             return None
         return int(value)
 
+    # Custom type for bool (handles 'True'/'False' strings)
+    def str_to_bool(value):
+        if isinstance(value, bool):
+            return value
+        if value.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif value.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
     # Data arguments
     parser.add_argument('--interaction_data', type=str, required=True,
                         help='Path to interaction CSV file')
@@ -71,7 +82,7 @@ def parse_args():
                         help='Weight decay')
     parser.add_argument('--max_grad_norm', type=float, default=1.0,
                         help='Max gradient norm')
-    parser.add_argument('--gradient_checkpointing', type=bool, default=True,
+    parser.add_argument('--gradient_checkpointing', type=str_to_bool, default=True,
                         help='Use gradient checkpointing')
 
     # Data arguments
@@ -101,7 +112,7 @@ def parse_args():
                         help='Local rank for distributed training')
     parser.add_argument('--deepspeed', type=str, default=None,
                         help='DeepSpeed config file')
-    parser.add_argument('--bf16', type=bool, default=True,
+    parser.add_argument('--bf16', type=str_to_bool, default=True,
                         help='Use bf16 precision')
 
     # Parse args (allow unknown for DeepSpeed)
@@ -217,6 +228,7 @@ def main():
         args=args,
         model=model,
         model_parameters=optimizer_grouped_parameters,
+        config=args.deepspeed, 
     )
 
     # Create scheduler (if not using DeepSpeed's scheduler)
