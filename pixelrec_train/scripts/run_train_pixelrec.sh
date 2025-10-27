@@ -14,8 +14,7 @@ OUTPUT_DIR="./results/pixelrec"
 LOGGING_DIR="./logs/pixelrec"
 
 # Training parameters (matching original config)
-BATCH_SIZE=4
-EPOCHS=5
+BATCH_SIZE=8
 LEARNING_RATE=1e-4
 MAX_SEQ_LENGTH=11          # MAX_ITEM_LIST_LENGTH (10) + 1
 MAX_TEXT_LENGTH=256
