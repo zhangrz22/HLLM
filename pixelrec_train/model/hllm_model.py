@@ -202,18 +202,21 @@ class HLLMModel(nn.Module):
         neg_cu_input_lens = batch['neg_cu_input_lens']
         neg_position_ids = batch['neg_position_ids']
 
-        # Encode items
-        pos_embedding = self.forward_item_emb(
-            pos_input_ids, pos_position_ids, pos_cu_input_lens,
-            self.item_emb_token_n, self.item_emb_tokens, self.item_llm
-        )
-        pos_embedding = pos_embedding.reshape(N, S + 1, -1)
+        # Encode items - merge pos and neg to call item_llm only once
+        # This prevents "gradient computed twice" error with DeepSpeed ZeRO
+        all_input_ids = torch.cat([pos_input_ids, neg_input_ids], dim=0)
+        all_cu_input_lens = torch.cat([pos_cu_input_lens, neg_cu_input_lens], dim=0)
+        all_position_ids = torch.cat([pos_position_ids, neg_position_ids], dim=0)
 
-        neg_embedding = self.forward_item_emb(
-            neg_input_ids, neg_position_ids, neg_cu_input_lens,
+        all_embeddings = self.forward_item_emb(
+            all_input_ids, all_position_ids, all_cu_input_lens,
             self.item_emb_token_n, self.item_emb_tokens, self.item_llm
         )
-        neg_embedding = neg_embedding.reshape(N, -1, self.item_llm.config.hidden_size)
+
+        # Split back into pos and neg
+        num_pos_items = pos_cu_input_lens.size(0)
+        pos_embedding = all_embeddings[:num_pos_items].reshape(N, S + 1, -1)
+        neg_embedding = all_embeddings[num_pos_items:].reshape(N, -1, self.item_llm.config.hidden_size)
 
         # Target embeddings
         target_pos_embs = pos_embedding[:, 1:]  # Predict next items
