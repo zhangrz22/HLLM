@@ -228,17 +228,11 @@ def main():
         args=args,
         model=model,
         model_parameters=optimizer_grouped_parameters,
-        config=args.deepspeed, 
+        config=args.deepspeed,
     )
 
-    # Create scheduler (if not using DeepSpeed's scheduler)
-    if lr_scheduler is None:
-        from transformers import get_cosine_schedule_with_warmup
-        lr_scheduler = get_cosine_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=warmup_steps,
-            num_training_steps=total_steps
-        )
+    # DeepSpeed manages scheduler internally, no need to create manually
+    logger.info("DeepSpeed initialization complete")
 
     # Training loop
     logger.info("Starting training...")
@@ -281,7 +275,11 @@ def main():
             # Logging
             if local_rank == 0 and global_step % args.logging_steps == 0:
                 avg_loss = epoch_loss / (step + 1)
-                lr = lr_scheduler.get_last_lr()[0] if lr_scheduler else args.learning_rate
+                # Get LR from DeepSpeed
+                try:
+                    lr = model_engine.get_lr()[0]
+                except:
+                    lr = args.learning_rate
 
                 log_str = f"Step {global_step}/{total_steps} | Loss: {avg_loss:.4f} | LR: {lr:.2e}"
 
