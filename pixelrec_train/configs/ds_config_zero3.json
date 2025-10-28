@@ -1,6 +1,4 @@
 {
-  "train_micro_batch_size_per_gpu": 8,
-  "gradient_accumulation_steps": 1,
   "gradient_clipping": 1.0,
   "steps_per_print": 20,
   "bf16": {
@@ -25,9 +23,8 @@
     "stage3_gather_16bit_weights_on_model_save": true,
     "round_robin_gradients": true
   },
-  "gradient_accumulation_steps": "auto",
-  "train_batch_size": "auto",
-  "train_micro_batch_size_per_gpu": "auto",
+  "gradient_accumulation_steps": 1,
+  "train_micro_batch_size_per_gpu": 8,
   "wall_clock_breakdown": false,
   "tensorboard": {
     "enabled": true,
