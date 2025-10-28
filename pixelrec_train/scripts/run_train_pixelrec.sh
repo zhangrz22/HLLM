@@ -19,7 +19,7 @@ EPOCHS=5
 LEARNING_RATE=1e-4
 MAX_SEQ_LENGTH=11          # MAX_ITEM_LIST_LENGTH (10) + 1
 MAX_TEXT_LENGTH=256
-TEXT_KEYS="title,description"
+TEXT_KEYS="title,tag,description"
 
 # Launch training with DeepSpeed
 nohup deepspeed --num_gpus=8 \

@@ -199,7 +199,7 @@ def main():
     train_dataloader, total_samples = create_dataloader(args, args.item_model_dir)
 
     # Calculate training steps
-    steps_per_epoch = len(train_dataloader) // world_size
+    steps_per_epoch = len(train_dataloader)
     total_steps = steps_per_epoch * args.num_train_epochs
     warmup_steps = int(total_steps * args.warmup_ratio)
 
@@ -207,6 +207,12 @@ def main():
     logger.info(f"Steps per epoch: {steps_per_epoch}")
     logger.info(f"Total training steps: {total_steps}")
     logger.info(f"Warmup steps: {warmup_steps}")
+
+    # Set DeepSpeed auto parameters
+    args.warmup_num_steps = warmup_steps
+    args.total_num_steps = total_steps
+    args.warmup_min_lr = 0.0
+    args.warmup_max_lr = args.learning_rate
 
     # Create optimizer
     no_decay = ['bias', 'LayerNorm.weight', 'layer_norm.weight']
