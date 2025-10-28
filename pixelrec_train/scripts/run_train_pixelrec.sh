@@ -7,14 +7,14 @@ cd "${SCRIPT_DIR}/.."
 ITEM_MODEL_DIR="/llm-reco-ssd-share/zhangrongzhou/OneRec-Think/test_test/OneRec-Think/basemodel/Qwen3-1-7B"
 USER_MODEL_DIR="/llm-reco-ssd-share/zhangrongzhou/OneRec-Think/test_test/OneRec-Think/basemodel/Qwen3-1-7B"
 
-INTERACTION_DATA="../dataset/Pixel200K.csv"
-TEXT_DATA="../information/Pixel200K.csv"
+INTERACTION_DATA="../dataset/interaction.csv"
+TEXT_DATA="../information/item_info.csv"
 
 OUTPUT_DIR="./results/pixelrec"
 LOGGING_DIR="./logs/pixelrec"
 
 # Training parameters (matching original config)
-BATCH_SIZE=8
+BATCH_SIZE=16
 EPOCHS=5
 LEARNING_RATE=1e-4
 MAX_SEQ_LENGTH=11          # MAX_ITEM_LIST_LENGTH (10) + 1
@@ -22,7 +22,8 @@ MAX_TEXT_LENGTH=256
 TEXT_KEYS="title,tag,description"
 
 # Launch training with DeepSpeed
-nohup deepspeed --num_gpus=8 \
+nohup deepspeed --hostfile=./scripts/hostfile \
+    --num_gpus=8 \
     ./scripts/train_pixelrec.py \
     --interaction_data "${INTERACTION_DATA}" \
     --text_data "${TEXT_DATA}" \
