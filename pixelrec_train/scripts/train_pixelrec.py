@@ -389,9 +389,14 @@ def main():
             for key, values in epoch_metrics.items():
                 logger.info(f"  {key}: {np.mean(values):.4f}")
 
+        # Synchronize all GPUs before saving checkpoint
+        torch.cuda.synchronize()
+        dist.barrier()
+
         # Save checkpoint
         if args.save_strategy == 'epoch':
             if local_rank == 0:
+                logger.info(f"Starting checkpoint save for epoch {epoch + 1}...")
                 save_dir = os.path.join(args.output_dir, f"checkpoint-epoch-{epoch + 1}")
                 os.makedirs(save_dir, exist_ok=True)
 
@@ -406,6 +411,9 @@ def main():
                     os.makedirs(best_dir, exist_ok=True)
                     model_engine.save_checkpoint(best_dir)
                     logger.info(f"Best model saved to {best_dir}")
+
+            # Ensure all ranks wait for checkpoint saving to complete
+            dist.barrier()
 
     logger.info("Training completed!")
 

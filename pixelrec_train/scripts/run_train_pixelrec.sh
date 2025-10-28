@@ -3,6 +3,11 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}/.."
 
+# Increase NCCL timeout for checkpoint saving
+export NCCL_TIMEOUT=1800  # 30 minutes (default is 600s = 10min)
+export NCCL_ASYNC_ERROR_HANDLING=1
+export NCCL_DEBUG=INFO  # Enable debug logging
+
 # Configuration
 ITEM_MODEL_DIR="/llm-reco-ssd-share/zhangrongzhou/OneRec-Think/test_test/OneRec-Think/basemodel/Qwen3-1-7B"
 USER_MODEL_DIR="/llm-reco-ssd-share/zhangrongzhou/OneRec-Think/test_test/OneRec-Think/basemodel/Qwen3-1-7B"
