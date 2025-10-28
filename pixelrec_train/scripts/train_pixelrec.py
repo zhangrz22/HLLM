@@ -6,10 +6,11 @@ Refactored from original HLLM code to use DeepSpeed framework
 
 import os
 import sys
+import json
 import argparse
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 import torch
 import deepspeed
@@ -31,6 +32,71 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+
+def _resolve_auto_config(config: Dict[str, Any], args, world_size: int) -> Dict[str, Any]:
+    """Resolve DeepSpeed config entries that are marked as 'auto'."""
+    resolved = dict(config)
+
+    per_device = args.per_device_train_batch_size
+    grad_acc = resolved.get('gradient_accumulation_steps', 1)
+    if isinstance(grad_acc, str):
+        grad_acc = 1 if grad_acc.lower() == 'auto' else int(grad_acc)
+    resolved['gradient_accumulation_steps'] = grad_acc
+
+    micro_batch = resolved.get('train_micro_batch_size_per_gpu', per_device)
+    if isinstance(micro_batch, str):
+        micro_batch = per_device if micro_batch.lower() == 'auto' else int(micro_batch)
+    resolved['train_micro_batch_size_per_gpu'] = micro_batch
+
+    train_batch = resolved.get('train_batch_size', micro_batch * grad_acc * world_size)
+    if isinstance(train_batch, str):
+        train_batch = micro_batch * grad_acc * world_size if train_batch.lower() == 'auto' else int(train_batch)
+    resolved['train_batch_size'] = train_batch
+
+    grad_clip = resolved.get('gradient_clipping')
+    if isinstance(grad_clip, str) and grad_clip.lower() == 'auto':
+        resolved['gradient_clipping'] = args.max_grad_norm
+
+    optimizer_cfg = resolved.get('optimizer', {})
+    optimizer_params = optimizer_cfg.get('params', {})
+    if isinstance(optimizer_params.get('lr'), str):
+        optimizer_params['lr'] = args.learning_rate
+    if isinstance(optimizer_params.get('betas'), str):
+        optimizer_params['betas'] = [0.9, 0.999]
+    if isinstance(optimizer_params.get('eps'), str):
+        optimizer_params['eps'] = 1e-8
+    if isinstance(optimizer_params.get('weight_decay'), str):
+        optimizer_params['weight_decay'] = args.weight_decay
+    if optimizer_params:
+        optimizer_cfg['params'] = optimizer_params
+        resolved['optimizer'] = optimizer_cfg
+
+    scheduler_cfg = resolved.get('scheduler', {})
+    scheduler_params = scheduler_cfg.get('params', {})
+    if isinstance(scheduler_params.get('warmup_num_steps'), str):
+        scheduler_params['warmup_num_steps'] = args.warmup_num_steps
+    if isinstance(scheduler_params.get('warmup_min_lr'), str):
+        scheduler_params['warmup_min_lr'] = args.warmup_min_lr
+    if isinstance(scheduler_params.get('warmup_max_lr'), str):
+        scheduler_params['warmup_max_lr'] = args.warmup_max_lr
+    if scheduler_params:
+        scheduler_cfg['params'] = scheduler_params
+        resolved['scheduler'] = scheduler_cfg
+
+    if 'bf16' in resolved and isinstance(resolved['bf16'], dict):
+        bf16_enabled = resolved['bf16'].get('enabled')
+        if isinstance(bf16_enabled, str):
+            resolved['bf16']['enabled'] = args.bf16 if bf16_enabled.lower() == 'auto' else bf16_enabled.lower() == 'true'
+        elif isinstance(args.bf16, bool):
+            resolved['bf16']['enabled'] = args.bf16
+
+    if 'fp16' in resolved and isinstance(resolved['fp16'], dict):
+        fp16_enabled = resolved['fp16'].get('enabled')
+        if isinstance(fp16_enabled, str):
+            resolved['fp16']['enabled'] = fp16_enabled.lower() == 'true'
+
+    return resolved
 
 
 def parse_args():
@@ -213,6 +279,24 @@ def main():
     args.warmup_min_lr = 0.0
     args.warmup_max_lr = args.learning_rate
 
+    ds_config = None
+    if args.deepspeed:
+        ds_config_path = Path(args.deepspeed)
+        if not ds_config_path.is_file():
+            ds_config_path = Path(__file__).parent / args.deepspeed
+        with ds_config_path.open('r') as f:
+            raw_ds_config = json.load(f)
+        ds_config = _resolve_auto_config(raw_ds_config, args, world_size)
+        setattr(args, 'train_batch_size', ds_config['train_batch_size'])
+        setattr(args, 'train_micro_batch_size_per_gpu', ds_config['train_micro_batch_size_per_gpu'])
+        setattr(args, 'gradient_accumulation_steps', ds_config['gradient_accumulation_steps'])
+        logger.info(
+            "Resolved DeepSpeed config | train_batch_size=%s, micro_batch=%s, grad_accum=%s",
+            ds_config['train_batch_size'],
+            ds_config['train_micro_batch_size_per_gpu'],
+            ds_config['gradient_accumulation_steps'],
+        )
+
     # Create optimizer
     no_decay = ['bias', 'LayerNorm.weight', 'layer_norm.weight']
     optimizer_grouped_parameters = [
@@ -233,7 +317,7 @@ def main():
         args=args,
         model=model,
         model_parameters=optimizer_grouped_parameters,
-        config=args.deepspeed,
+        config=ds_config if ds_config is not None else args.deepspeed,
     )
 
     logger.info("DeepSpeed initialization complete")
