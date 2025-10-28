@@ -208,12 +208,6 @@ def main():
     logger.info(f"Total training steps: {total_steps}")
     logger.info(f"Warmup steps: {warmup_steps}")
 
-    # Set DeepSpeed auto parameters
-    args.warmup_num_steps = warmup_steps
-    args.total_num_steps = total_steps
-    args.warmup_min_lr = 0.0
-    args.warmup_max_lr = args.learning_rate
-
     # Create optimizer
     no_decay = ['bias', 'LayerNorm.weight', 'layer_norm.weight']
     optimizer_grouped_parameters = [
@@ -235,6 +229,14 @@ def main():
         model=model,
         model_parameters=optimizer_grouped_parameters,
         config=args.deepspeed,
+    )
+
+    # Create learning rate scheduler manually
+    from transformers import get_cosine_schedule_with_warmup
+    lr_scheduler = get_cosine_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=warmup_steps,
+        num_training_steps=total_steps
     )
 
     # DeepSpeed manages scheduler internally, no need to create manually
@@ -267,6 +269,7 @@ def main():
             # Backward pass
             model_engine.backward(loss)
             model_engine.step()
+            lr_scheduler.step()
 
             # Update metrics
             epoch_loss += loss.item()
@@ -281,11 +284,8 @@ def main():
             # Logging
             if local_rank == 0 and global_step % args.logging_steps == 0:
                 avg_loss = epoch_loss / (step + 1)
-                # Get LR from DeepSpeed
-                try:
-                    lr = model_engine.get_lr()[0]
-                except:
-                    lr = args.learning_rate
+                # Get LR from scheduler
+                lr = lr_scheduler.get_last_lr()[0]
 
                 log_str = f"Step {global_step}/{total_steps} | Loss: {avg_loss:.4f} | LR: {lr:.2e}"
 
