@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import torch
+import torch.distributed as dist
 import deepspeed
 from transformers import get_cosine_schedule_with_warmup
 from torch.utils.data import DataLoader
@@ -236,8 +237,9 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(args.logging_dir, exist_ok=True)
 
-    # Initialize DeepSpeed
-    deepspeed.init_distributed()
+    # Initialize DeepSpeed with increased timeout
+    import datetime
+    deepspeed.init_distributed(timeout=datetime.timedelta(minutes=30))
 
     # Get local rank
     local_rank = int(os.environ.get('LOCAL_RANK', 0))
